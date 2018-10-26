@@ -27,20 +27,22 @@ void add_history(char* unused) {}
 
 int main(int argc, char** argv) {
 	/* Print Version and Exit Information */
-	puts("Lispy Version 0.0.0.1");
-	puts("Press Ctrl+c to Exit\n");
+	puts("Lisp Version 0.0.0.1");
+	puts("Press Ctrl+c to Exit");
+	puts("Note that Lisp has not been taught any commands.");
+	puts("Lisp has a thirst for knowledge but the brain of a sieve.\n");
 	
 	/* In a never-ending loop ... */
 	while (1) {
 		/* Now in either case readline will be defined */
 		/* Output our prompt and get input */
-		char* input = readline("lispy> ");
+		char* input = readline("Lisp> ");
 		
 		/* Add input to history */
 		add_history(input);
 		
 		/* Echo input back to user */
-		printf("No you're a %s\n", input);
+		printf("%s is an invalid command.\n", input);
 		
 		/* Free retrieved input */
 		free(input);
