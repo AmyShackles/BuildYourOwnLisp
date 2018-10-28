@@ -38,8 +38,10 @@ int main(int argc, char** argv) {
 	/* Define them with the following Language */
 	mpca_lang(MPCA_LANG_DEFAULT,
 		"															\
-			number		: /-?[0-9]+/ ;								\
-			operator	: '+' | '-' | '*' | '/';					\
+			number		: /-?[0-9]+\.?[0-9]+/ ;						\
+			operator	: '+' | '-' | '*' | '/' | '%'				\
+						| \"add\" | \"sub\" | \"mul\"				\
+						| \"div\" | \"modulo\";						\
 			expr		: <number> | '(' <operator> <expr>+ ')' ;	\
 			lisp		: /^/ <operator> <expr>+ /$/ ;				\
 		",
