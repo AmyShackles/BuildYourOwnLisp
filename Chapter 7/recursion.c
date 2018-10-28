@@ -1,4 +1,5 @@
 #include "../mpc.h"
+#include <math.h>
 
 #ifdef _WIN32
 
@@ -23,14 +24,18 @@ void add_history(char* unused) {}
 long eval_op(long x, char* op, long y) {
 	if (strcmp(op, "+") == 0) { return x + y; }
 	if (strcmp(op, "-") == 0) { return x - y; }
+	if (strcmp(op, "neg") == 0) { return -(x) -(y); }
 	if (strcmp(op, "*") == 0) { return x * y; }
 	if (strcmp(op, "/") == 0) { return x / y; }
 	if (strcmp(op, "%") == 0) { return x % y; }
 	if (strcmp(op, "add") == 0) { return x + y; }
+	if (strcmp(op, "^") == 0) { return pow(x, y); }
 	if (strcmp(op, "subtract") == 0) { return x - y; }
 	if (strcmp(op, "multiply") == 0) { return x * y; }
 	if (strcmp(op, "divide") == 0) { return x / y; }
 	if (strcmp(op, "modulo") == 0) { return x % y; }
+	if (strcmp(op, "max") == 0) { return x > y ? x : y; }
+	if (strcmp(op, "min") == 0) { return x < y ? x : y; }
 	return 0;
 }
 
@@ -65,13 +70,13 @@ int main(int argc, char** argv) {
 	mpc_parser_t* Lisp = mpc_new("lisp");
 	
 	mpca_lang(MPCA_LANG_DEFAULT,
-	"															\
-		number		: /-?[0-9]+/ ;								\
-		operator	: '+' | '-' | '*' | '/' | '%'				\
-					| \"add\" | \"subtract\" | \"multiply\"		\
-					| \"divide\" | \"modulo\";					\
-		expr		: <number> | '(' <operator> <expr>+ ')' ;	\
-		lisp		: /^/ <operator> <expr>+ /$/ ;				\
+	"																		\
+		number		: /-?[0-9]+/ ;											\
+		operator	: '+' | '-' | '*' | '/' | '%' | '^'						\
+					| \"add\" | \"subtract\" | \"multiply\" | \"neg\"		\
+					| \"divide\" | \"modulo\" | \"max\" | \"min\" ;			\
+		expr		: <number> | '(' <operator> <expr>+ ')' ;				\
+		lisp		: /^/ <operator> <expr>+ /$/ ;							\
 	",
 	Number, Operator, Expr, Lisp);
 	
@@ -82,10 +87,10 @@ int main(int argc, char** argv) {
 	
 	char* input = readline("Lisp> ");
 	add_history(input);
-	
+  
 	mpc_result_t r;
 	if (mpc_parse("<stdin>", input, Lisp, &r)) {
-	
+		
 		long result = eval(r.output);
 		printf("%li\n", result);
 		mpc_ast_delete(r.output);
