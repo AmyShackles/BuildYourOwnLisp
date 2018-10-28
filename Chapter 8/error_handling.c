@@ -32,6 +32,7 @@ enum { LVAL_NUM, LVAL_ERR };
 typedef struct {
 	int type;
 	long num;
+	double dec;
 	int err;
 } lval;
 
@@ -40,6 +41,7 @@ lval lval_num(long x) {
 	lval v;
 	v.type = LVAL_NUM;
 	v.num = x;
+	v.dec = x;
 	return v;
 }
 
@@ -145,7 +147,7 @@ int main(int argc, char** argv) {
 						| \"divide\" | \"neg\" | \"modulo\"			\
 						| \"max\" | \"min\" ;						\
 		expr			: <number> | '(' <operator> <expr>+ ')' ;	\
-		lisp			: /^/ <operator> <expr>+ /$/ ;				\
+		lisp			: /^/ <operator>+ <expr>+ /$/ ;				\
 	",
 	Number, Operator, Expr, Lisp);
 	
