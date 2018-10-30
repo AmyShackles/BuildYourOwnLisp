@@ -21,11 +21,13 @@ void add_history(char* unused) {}
 #endif
 
 /* Add SYM and SEXPR as possible lval types */
+/* I added LVAL_DEC in order to handle decimal numbers */
 enum { LVAL_ERR, LVAL_NUM, LVAL_DEC, LVAL_SYM, LVAL_SEXPR };
 
 typedef struct lval {
 	int type;
 	long num;
+	/* double dec is going to be used to implement decimals */
 	double dec;
 	/* Error and Symbol types have some string data */
 	char* err;
@@ -40,6 +42,8 @@ lval* lval_num(long x) {
 	lval* v = malloc(sizeof(lval));
 	v->type = LVAL_NUM;
 	v->num = x;
+	/* Was a little tricky here and added a field on lval_num types that are the equivalent of x cast as a double
+	My understanding is this is what allows values to convert to float/double when necessary (when one argument is a decimal) */
 	v->dec = (double) x;
 	return v;
 }
@@ -83,6 +87,7 @@ void lval_del(lval* v) {
 	switch (v->type) {
 		/* Do nothing special for number types */
 		case LVAL_NUM: break;
+		/* LVAL_DEC is for decimal numbers, so also should not have anything special done */
 		case LVAL_DEC: break;
 		/* For Err or Sym free the string data */
 		case LVAL_ERR: free(v->err); break;
@@ -152,6 +157,7 @@ void lval_expr_print(lval* v, char open, char close) {
 void lval_print(lval* v) {
 	switch(v->type) {
 		case LVAL_NUM: printf("%li", v->num); break;
+		/* In C, %f is naturally converted to a double */
 		case LVAL_DEC: printf("%f", v->dec); break;
 		case LVAL_ERR: printf("Error: %s", v->err); break;
 		case LVAL_SYM: printf("%s", v->sym); break;
@@ -187,6 +193,8 @@ lval* builtin_op(lval* a, char* op) {
 	/* Pop the next element */
 	lval* y = lval_pop(a, 0);
 	
+	/* In order to account for the fact that numbers being parsed may be decimals and not integers,
+		you need to have the logic available for both possible outputs */
 	if (strcmp(op, "+") == 0) { x->num += y->num; x->dec += y->dec; }
 	if (strcmp(op, "add") == 0) { x->num += y->num; x->dec += y->dec; }
 	if (strcmp(op, "-") == 0) { x->num -= y->num; x->dec -= y->dec; }
@@ -194,7 +202,8 @@ lval* builtin_op(lval* a, char* op) {
 	if (strcmp(op, "*") == 0) { x->num *= y->num; x->dec *= y->dec; }
 	if (strcmp(op, "multiply") == 0) { x->num *= y->num; x->dec *= y-> dec; }
 	if (strcmp(op, "%") == 0) { x->num %= y->num; }
-	if (strcmp(op, "^") == 0) { 
+	if (strcmp(op, "^") == 0) {
+	/* If x->num doesn't equal x->dec, we know it's a decimal, so we should use lval_dec to make the pointer */
 		if (x->num != x->dec) {
 			x = lval_dec(pow(x->dec, y->dec)); 
 		} else {
@@ -286,6 +295,7 @@ lval* lval_read_num(mpc_ast_t* t) {
 lval* lval_read(mpc_ast_t* t) {
 	/* If Symbol or Number return conversion to that type */
 	if (strstr(t->tag, "number")) { 
+	/* Bit cheating, but if the contents contain a period, it's a decimal and should be read with lval_read_dec */
 		if (strstr(t->contents, ".")) { 
 			return lval_read_dec(t); 
 		}
@@ -319,6 +329,7 @@ int main(int argc, char** argv) {
 	mpc_parser_t* Expr = mpc_new("expr");
 	mpc_parser_t* Lisp = mpc_new("lisp");
 
+	/* For number, we have to add the option of a period in order to accept decimal numbers */
 	mpca_lang(MPCA_LANG_DEFAULT,
 		"														\
 			number	: /-?[0-9.]+/ ;								\
