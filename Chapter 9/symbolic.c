@@ -194,7 +194,13 @@ lval* builtin_op(lval* a, char* op) {
 	if (strcmp(op, "*") == 0) { x->num *= y->num; x->dec *= y->dec; }
 	if (strcmp(op, "multiply") == 0) { x->num *= y->num; x->dec *= y-> dec; }
 	if (strcmp(op, "%") == 0) { x->num %= y->num; }
-	if (strcmp(op, "^") == 0) { x = lval_num(pow(x->num, y->num)); x = lval_dec(pow(x->dec, y->dec)); }
+	if (strcmp(op, "^") == 0) { 
+		if (x->num != x->dec) {
+			x = lval_dec(pow(x->dec, y->dec)); 
+		} else {
+			x = lval_num(pow(x->num, y->num));
+		}
+	}
 	if (strcmp(op, "modulo") == 0) { x->num %= y->num; }
 	if (strcmp(op, "divide") == 0) {
 		if (y->num == 0) {
