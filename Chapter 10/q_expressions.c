@@ -152,6 +152,12 @@ void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 #define LASSERT(args, cond, err) \
 	if (!(cond)) { lval_del(args); return lval_err(err); }
 	
+#define INCORRECTARGNUM(args, count, err) \
+	if (count > 1) { lval_del(args); return lval_err(err); }
+	
+#define EMPTYLIST(args, count, err) \
+	if (count == 0) { lval_del(args); return lval_err(err); }
+	
 lval* lval_eval(lval* v);
 
 lval* builtin_list(lval* a) {
@@ -160,9 +166,11 @@ lval* builtin_list(lval* a) {
 }
 
 lval* builtin_head(lval* a) {
-	LASSERT(a, a->count == 1, "Function 'head' passed too many arguments!");
+	// LASSERT(a, a->count == 1, "Function 'head' passed too many arguments!");
+	INCORRECTARGNUM(a, a->count, "Function 'head' passed too many arguments!");
 	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'head' passed incorrect type!");
-	LASSERT(a, a->cell[0]->count != 0, "Function 'head' passed {}!");
+	EMPTYLIST(a, a->cell[0]->count, "Function 'head' passed {}, which is an empty list!");
+	//LASSERT(a, a->cell[0]->count != 0, "Function 'head' passed {}!");
 	
 	lval* v = lval_take(a, 0);
 	while (v->count > 1) { lval_del(lval_pop(v, 1)); }
@@ -197,9 +205,11 @@ lval* builtin_head(lval* a) {
 */
 
 lval* builtin_tail(lval* a) {
-	LASSERT(a, a->count == 1, "Function 'tail' passed too many arguments!");
+	// LASSERT(a, a->count == 1, "Function 'tail' passed too many arguments!");
+	INCORRECTARGNUM(a, a->count, "Function 'tail' passed too many arguments!");
 	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'tail' passed incorrect type!");
-	LASSERT(a, a->cell[0]->count != 0, "Function 'tail' passed {}!");
+	EMPTYLIST(a, a->cell[0]->count, "Function 'tail' passed {}, which is an empty list!");
+	//LASSERT(a, a->cell[0]->count != 0, "Function 'tail' passed {}!");
 	
 	lval* v = lval_take(a, 0);
 	lval_del(lval_pop(v, 0));
@@ -232,9 +242,45 @@ lval* builtin_tail(lval* a) {
 } 
 */
 
+lval* builtin_last(lval* a) {
+	INCORRECTARGNUM(a, a->count, "Function 'last' passed too many arguments!");
+	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'init' passed incorrect type!");
+	
+	lval* x = lval_take(a, a->count - 1);
+	while (x->count > 1) {
+		lval_del(lval_pop(x, 0));
+	}
+	
+	return x;
+}
+
+lval* builtin_init(lval* a) {
+	INCORRECTARGNUM(a, a->count, "Function 'init' passed too many arguments!");
+	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'init' passed incorrect type!");
+	
+	lval* x = lval_take(a, 0);
+	lval_del(lval_pop(x, x->count - 1));
+	return x;
+}
+
+// lval* builtin_cons(lval* a) {
+// 	if (a->count != 2) {
+// 		lval_del(a);
+// 		return lval_err("Function 'cond' needs two arguments"); }
+// 	
+// 	lval* x = lval_take(a, 0);
+// 	while (a->count) {
+// 		x = lval_join(x, lval_take(a, 0));
+// 	}
+// 	
+// 	lval_del(a);
+// 	
+// 	return x;
+// }
 
 lval* builtin_eval(lval* a) {
-	LASSERT(a, a->count == 1, "Function 'eval' passed too many arguments!");
+	// LASSERT(a, a->count == 1, "Function 'eval' passed too many arguments!");
+	INCORRECTARGNUM(a, a->count, "Function 'eval' passed too many arguments!");
 	LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function 'eval' passed incorrect type!");
 	
 	lval* x = lval_take(a, 0);
@@ -291,7 +337,10 @@ lval* builtin(lval* a, char* func) {
 	if (strcmp("head", func) == 0) { return builtin_head(a); }
 	if (strcmp("tail", func) == 0) { return builtin_tail(a); }
 	if (strcmp("join", func) == 0) { return builtin_join(a); }
+	if (strcmp("last", func) == 0) { return builtin_last(a); }
 	if (strcmp("eval", func) == 0) { return builtin_eval(a); }
+	if (strcmp("init", func) == 0) { return builtin_init(a); }
+// 	if (strcmp("cons", func) == 0) { return builtin_cons(a); }
 	if (strstr("+-/*", func)) { return builtin_op(a, func); }
 	lval_del(a);
 	return lval_err("Unknown function!");
@@ -367,7 +416,8 @@ int main(int argc, char** argv) {
 		"																\
 			number		: /-?[0-9]+/ ;									\
 			symbol		: \"list\" | \"head\" | \"tail\" | \"join\"		\
-						| \"eval\" | '+' | '-' | '*' | '/' ;				\
+						| \"eval\" | \"last\" | '+' | '-' | '*' | '/'   \
+						| \"init\" | \"cons\";									\
 			sexpr		: '(' <expr>* ')' ;								\
 			qexpr		: '{' <expr>* '}' ;								\
 			expr		: <number> | <symbol> | <sexpr> | <qexpr> ;		\
