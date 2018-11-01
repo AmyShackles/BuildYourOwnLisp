@@ -541,7 +541,7 @@ int main(int argc, char** argv) {
 	mpc_parser_t* Sexpr = mpc_new("sexpr");
 	mpc_parser_t* Qexpr = mpc_new("qexpr");
 	mpc_parser_t* Expr = mpc_new("expr");
-	mpc_parser_t* Lisp = mpc_new("Lisp");
+	mpc_parser_t* Lisp = mpc_new("lisp");
 	
 	
 	mpca_lang(MPCA_LANG_DEFAULT,
