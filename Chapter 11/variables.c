@@ -260,6 +260,10 @@ lval* lenv_get(lenv* e, lval* k) {
 		if (strcmp(e->syms[i], k->sym) == 0) {
 			return lval_copy(e->vals[i]);
 		}
+		if (strcmp(k->sym, "exit") == 0) {
+			printf("Exiting the program ... \n\n");
+			exit(0);
+		}
 	}
 	/* If no symbol is found, return an error */
 	return lval_err("Unbound symbol '%s'", k->sym);
