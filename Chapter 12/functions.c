@@ -78,3 +78,29 @@ case LVAL_FUN:
 	}
 	break;
 	}
+	
+/* Need to create a builtin for lambda function: 
+Should take as input a list of symbols and a list that represents the code and then return a function lval.
+Do error checking to make sure the count and type of arguments are correct and then if so:
+Pop the first two arguments from the list and pass them to previously defined function lval_lambda */
+
+lval* builtin_lambda(lenv* e, lval* a) {
+	/* Check two arguments, each of which are Q-expressions */
+	LASSERT_NUM("\\", a, 1);
+	LASSERT_TYPE("\\", a, 0, LVAL_QEXPR);
+	LASSERT_TYPE("\\", a, 1, LVAL_QEXPR);
+	
+	/* Check that the first QEXPR contains only symbols */
+	for (int i = 0; i < a->cell[0]->count; i++) {
+		LASSERT(a, (a->cell[0]->cell[i]->type == LVAL_SYM),
+			"Cannot define non-symbol.  Got %s, Expected %s.",
+			ltype_name(a->cell[0]->cell[i]->type), ltype_name(LVAL_SYM));
+	}
+	
+	/* Pop first two arguments and pass them to lval_lambda */
+	lval* formals = lval_pop(a, 0);
+	lval* body - lval_pop(a, 0);
+	lval_del(a);
+	
+	return lval_lambda(formals, body);
+}
