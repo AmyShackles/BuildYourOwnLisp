@@ -104,3 +104,137 @@ lval* builtin_lambda(lenv* e, lval* a) {
 	
 	return lval_lambda(formals, body);
 }
+
+/* Right now, functions have their own environment, but they don't have access to things
+outside of their environment (the global environment).
+We can give our functions access to the global environment by changing the environment struct
+to contain a reference to a parent environment.
+That way, when lenv_get is called on the environment, and a symbol isn't found,
+it can then search any parent environment for the symbol. */
+
+struct lenv {
+	lenv* par;
+	int count;
+	char** syms;
+	lval** vals;
+};
+
+lenv* lenv_new(void) {
+	lenv* e = malloc(sizeof(lenv));
+	e->par = NULL;
+	e->count = 0;
+	e->syms = NULL;
+	e->vals = NULL;
+	return e;
+}
+
+lval* lenv_get(lenv* e, lval* k) {
+	for (int i = 0; i < e->count; i++) {
+		if (strcmp(e->syms[i], k->sym) == 0) {
+			return lval_copy(e->vals[i]);
+		}
+	}
+	
+	if (e->par) {
+		return lenv_get(e->par, k);
+	} else {
+		return lval_err("Unbound symbol '%s'", k->sym);
+	}
+}
+
+/* Because we have a new lval type that has its own environment, we need a way to copy 
+the environments for when we copy lval structs */
+
+lenv* lenv_copy(lenv* e) {
+	lenv* n = malloc(sizeof(lenv));
+	n->par = e->par;
+	n->count = e->count;
+	n->syms = malloc(sizeof(char*) * n->count);
+	n->vals = malloc(sizeof(lval*) * n->count);
+	for (int i = 0; i < e->count; i++) {
+		n->syms[i] = malloc(strlen(e->syms[i]) + 1);
+		strcpy(n->syms[i], e->syms[i]);
+		n->vals[i] = lval_copy(e->vals[i]);
+	}
+	return n;
+}
+
+/* Now there are two ways of defining a variable - either locally or globally.
+We can keep lenv_put the same as it can be used for definition in the local environment.
+But we need a new function for definition in the global environment that will follow the parent 
+chain up before using lenv_put to define locally */
+
+void lenv_def(lenv* e, lval* k, lval* v) {
+	while (e->par) {
+		e = e->par;
+	}
+	lenv_put(e, k, v);
+}
+
+/* Should add another builtin for local assignments - put in C, but = in Lisp */
+
+lenv_add_builtin(e, "def", builtin_def);
+lenv_add_builtin(e, "=", builtin_put);
+
+lval* builtin_def(lenv* e, lval* a) {
+	return builtin_var(e, a, "def");
+}
+
+lval* builtin_put(lenv* e, lval* a) {
+	return builtin_var(e, a, "=");
+}
+
+lval* builtin_var(lenv* e, lval* a, char* func) {
+	LASSERT_TYPE(func, a, 0, LVAL_QEXPR);
+	
+	lval* syms = a->cell[0];
+	for (int i = 0; i < syms->count; i++) {
+		LASSERT(a, (syms->cell[i]->type == LVAL_SYM),
+			"Function '%s' cannot define non-symbol. "
+			"Got %s, Expected %s.", func,
+			ltype_name(syms->cell[i]->type),
+			ltype_name(LVAL_SYM));
+	}
+	
+	LASSERT(a, (syms->count == a->count-1),
+	"Function '%s' passed too many arguments for symbols. "
+	"Got %i, Expected %i.", func, syms->count, a->count-1);
+	
+	for (int i = 0; i < syms->count; i++) {
+		/* If 'def' define globally, if 'put' define locally */
+		if (strcmp(func, "def") == 0) {
+			lenv_def(e, syms->cell[i], a->cell[i+1]);
+		}
+		
+		if (strcmp(func, "=") == 0) {
+			lenv_put(e, syms->cell[i], a->cell[i+1]);
+		}
+	}
+	
+	lval_del(a);
+	return lval_sexpr();
+}
+
+/* Need to write code for when expression gets evaluated and lval is called.
+For builtins, process stays the same.
+For user-defined functions, we need to bind each argument passed in to each of the symbols
+in the forms field and then evaluate the body using the env field as an environment
+and the calling environment as a parent. */
+
+lval* lval_call(lenv* e, lval* f, lval* a) {
+	/* If builtin, call it */
+	if (f->builtin) { return f->builtin(e, a); }
+	
+	/* Assign each argument to each formal in order */
+	for (int i = 0; i < a->count; i++) {
+		lenv_put(f->env, f->formals->cell[i], a->cell[i]);
+	}
+	
+	lval_del(a);
+	
+	/* Set the parent environment */
+	f->env->par = e;
+	
+	/* Evaluate the body */
+	return builtin_eval(f->env, lval_add(lval_sexpr(), lval_copy(f->body)));
+} // Note, this will crash if number of arguments and number of formals differ
