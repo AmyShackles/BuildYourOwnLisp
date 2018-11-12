@@ -221,20 +221,77 @@ For user-defined functions, we need to bind each argument passed in to each of t
 in the forms field and then evaluate the body using the env field as an environment
 and the calling environment as a parent. */
 
+/* This is replaced by an lval_call function that forms partially evaluated functions
+in the event that fewer arguments are supplied than the number of symbols in the 
+user-defined function
+
 lval* lval_call(lenv* e, lval* f, lval* a) {
-	/* If builtin, call it */
+	// If builtin, call it
 	if (f->builtin) { return f->builtin(e, a); }
 	
-	/* Assign each argument to each formal in order */
+	// Assign each argument to each formal in order
 	for (int i = 0; i < a->count; i++) {
 		lenv_put(f->env, f->formals->cell[i], a->cell[i]);
 	}
 	
 	lval_del(a);
 	
-	/* Set the parent environment */
+	// Set the parent environment
 	f->env->par = e;
 	
-	/* Evaluate the body */
+	// Evaluate the body 
 	return builtin_eval(f->env, lval_add(lval_sexpr(), lval_copy(f->body)));
-} // Note, this will crash if number of arguments and number of formals differ
+} // Note, this will crash if number of arguments and number of formals differ */
+
+/* Two ways of approaching this problem - 
+1) Throwing an error whenever the number of arguments is incorrect
+2) Allowing for the partial evaluation of functions - binding what arguments are provided 
+and replacing the function with a more complete one containing some bound variables */
+
+lval* lval_call(lenv* e, lval* f, lval* a) {
+	/* If builtin, apply that */
+	if (f->builtin) { return f->builtin(e, a); }
+	
+	/* Record argument counts */
+	int given = a->count;
+	int total = f->formals->count;
+	
+	/* While arguments still remain to be processed */
+	while (a->count) {
+		
+		/* If we've run out of formal arguments to bind */
+		if (f->formals->count == 0) {
+			lval_del(a); return lval_err(
+				"Function passed too many arguments. "
+				"Got %i, Expected %i.", given, total);
+		}
+		
+		/* Pop the first symbol from the formals */
+		lval* sym = lval_pop(f->formals, 0);
+		
+		/* Pop the next argument from the list */
+		lval* val = lval_pop(a, 0);
+		
+		/* Bind a copy into the function's environment */
+		lenv_put(f->env, sym, val);
+		
+		/* Delete symbol and value */
+		lval_del(sym); lval_del(val);
+	}
+	
+	/* Argument list is now bound so can be cleaned up */
+	lval_del(a);
+	
+	/* If all formals have been bound, evaluate */
+	if (f->formals->count == 0) {
+		
+		/* Set the environment parent to evaluation environment */
+		f->env->par = e;
+		
+		/* Evaluate and return */
+		return builtin_eval(f->env, lval_add(lval_sexpr(), lval_copy(f->body)));
+	} else {
+		/* Otherwise return partially evaluated function */
+		return lval_copy(f);
+	}
+}
