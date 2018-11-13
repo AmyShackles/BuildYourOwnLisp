@@ -211,7 +211,7 @@ lval* lval_copy(lval* v) {
 
 lval* lval_add(lval* v, lval* x) {
 	v->count++;
-	v->cell = realloc(v->cell, sizeof(lval*) + v->count);
+	v->cell = realloc(v->cell, sizeof(lval*) * v->count);
 	v->cell[v->count-1] = x;
 	return v;
 }
@@ -358,7 +358,7 @@ void lenv_put(lenv* e, lval* k, lval* v) {
 	
 	e->count++;
 	e->vals = realloc(e->vals, sizeof(lval*) * e->count);
-	e->syms = realloc(e->syms, sizeof(lval*) * e->count);
+	e->syms = realloc(e->syms, sizeof(char*) * e->count);
 	
 	e->vals[e->count-1] = lval_copy(v);
 	e->syms[e->count-1] = malloc(strlen(k->sym)+1);
@@ -386,12 +386,14 @@ void lenv_def(lenv* e, lval* k, lval* v) {
 
 #define LASSERT_TYPE(func, args, index, expect) \
 	LASSERT(args, args->cell[index]->type == expect, \
-		"Function '%s' passed incorrect type for argument %i.  Got %s, Expected %s.", \
+		"Function '%s' passed incorrect type for argument %i.  \
+		Got %s, Expected %s.", \
 		func, index, ltype_name(args->cell[index]->type), ltype_name(expect))
 		
 #define LASSERT_NUM(func, args, num) \
 	LASSERT(args, args->count == num, \
-		"Function '%s' passed incorrect number of arguments.  Got %i, Expected %i.", \
+		"Function '%s' passed incorrect number of arguments.  \
+		Got %i, Expected %i.", \
 		func, args->count, num)
 		
 #define LASSERT_NOT_EMPTY(func, args, index) \
@@ -580,7 +582,6 @@ void lenv_add_builtins(lenv* e) {
 	lenv_add_builtin(e, "tail", builtin_tail);
 	lenv_add_builtin(e, "eval", builtin_eval);
 	lenv_add_builtin(e, "join", builtin_join);
-	lenv_add_builtin(e, "def", builtin_def);
 	
 	lenv_add_builtin(e, "+", builtin_add);
 	lenv_add_builtin(e, "-", builtin_sub);
