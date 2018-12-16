@@ -39,3 +39,25 @@ IMAP - internet message access protocol
 **Parameters** - snippets of information found in query string of URL, separated by ampersand so they can be understood visually and be used to display content
 
 **Fragment** - internal page reference. Sometimes called a named anchor. Usually appears at the end of a URL and begins with a hash character followed by an identifier - refers to a section within a web page
+
+### Coding Grammars
+
+Can create parsers that build on each other to create a language.
+
+### Natural Grammars
+
+`mpc` also allows you to write grammars more naturally by containing the entirety of it in a single string. Process becomes two steps - creating rules with `mpc_new` and defining them using `mpc_lang`
+
+`mpc_lang` takes as its first argument an option flag that this interpreter will use DEFAULT but which can also be PREDICTIVE, etc. It then takes the long multi-line string that has the name of the rule on the left followed by a colon followed by its definition and ending in a semicolon.
+
+##### Special symbols used to define rules:
+
+| Symbol     | Meaning                                   |
+| ---------- | ----------------------------------------- |
+| "ab"       | The string _ab_ is required               |
+| 'a'        | The character _a_ is required             |
+| 'a' 'b'    | First _a_ is required, then _b_           |
+| 'a' \| 'b' | Either _a_ is required or _b_ is required |
+| 'a'\*      | Zero or more _a_ are required             |
+| 'a'+       | One or more _a_ are required              |
+| \<abba>    | The rule called _abba_ is required        |
