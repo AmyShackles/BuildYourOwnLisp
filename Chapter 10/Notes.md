@@ -154,6 +154,7 @@ lval* builtin_eval(lval* a) {
 For `join`, we're going to utilize two different functions - `builtin_join` that iterates through the argument list, passing them to `lval_join`, along with the next element in the argument lsit, which combines and returns the two elements so that `builtin_joijn` has an updated `lval` with the two elements joined together and can add more onto it.
 
 **Builtin lookup**
+
 In order to tell the program which function to call, we define a function `builtin` which takes in an `lval` and the name of the function, performs a string compare on the function name, and returns a call to the appropriate builtin function, passing the `lval` as an argument. We can use this to also work on previously created functions resolved with `builtin_op`
 
 Now that all of the functions navigated to using `builtin`, we can change the line in `lval_eval_sexpr` to call `builtin` rather than `builtin_op`
