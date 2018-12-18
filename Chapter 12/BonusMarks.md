@@ -1,6 +1,14 @@
 ### Define a Lisp function that returns the first element from a list
 
+```
+fun {firstElement f & xs} {f}
+```
+
 ### Define a Lisp function that returns the second element from a list
+
+```
+fun {secondElemnt a b & cd} {b}
+```
 
 ### Define a Lisp function that calls a function with two arguments in reverse order
 
