@@ -358,6 +358,16 @@ Our function needs to declare an object of type `va_list` that the macros `va_st
 
 It's possible then to examine each variable using `va_arg`, but for our Lisp interpreter, we're going to pass the entire argument list to `vsnprintf`, which takes in a `va_list` and writes it to a string. Since `vsnprintf` outputs to a string, we need to first allocate space for it. Because we don't know the size of the string until after the function is run, we allocate a large buffer and then reallocate to a smaller buffer once we know the size of the error message.
 
+**Notes from original notes**
+
+1. Create `va_list` struct
+2. Initialize it with `va_start`, passing in last named arg
+3. `vsnprintf` outputs a string and we don't know the size of the string until running the function, so need to allocate a buffer - we'll go with 512 characters and hope it's big enough to hold the list
+4. `printf` the error message with a max of buffer
+5. Reallocate the size to be the number of bytes actually used
+6. Clean up the `va_list` by calling `va_end`
+7. Return the error string
+
 ```
 lval* lval_err(char* fmt, ...) {
     lval* v = malloc(sizeof(lval));
