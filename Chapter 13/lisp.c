@@ -511,9 +511,40 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
     if (strcmp(func, "=") == 0) {
       lenv_put(e, syms->cell[i], a->cell[i + 1]);
     }
+    if (strcmp(func, "fun") == 0) {
+      lenv_def(e, syms->cell[i], a->cell[i + 1]);
+    }
   }
   lval_del(a);
   return lval_sexpr();
+}
+
+lval* builtin_fun(lenv* e, lval* a) {
+  LASSERT_NUM("fun", a, 2);
+  LASSERT_TYPE("fun", a, 0, LVAL_QEXPR);
+  LASSERT_TYPE("fun", a, 1, LVAL_QEXPR);
+
+  for (int i = 0; i < a->cell[0]->count; i++) {
+    LASSERT(a, (a->cell[0]->cell[i]->type == LVAL_SYM),
+            "Cannot define non-symbol.  Got %s, Expected %s.",
+            ltype_name(a->cell[0]->cell[i]->type), ltype_name(LVAL_SYM));
+  }
+  char* head = lval_take(a, 0)->sym;
+  lval* formals = builtin_tail(e, a->cell[0]);
+  lval* body = lval_pop(a, 1);
+
+  lval_del(a);
+
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_FUN;
+  v->builtin = NULL;
+  v->env = lenv_new();
+  v->sym = malloc(strlen(head) + 1);
+  strcpy(v->sym, head);
+  v->formals = formals;
+  v->body = body;
+
+  return builtin_var(e, v, "fun");
 }
 
 lval* builtin_ord(lenv* e, lval* a, char* op);
@@ -644,6 +675,7 @@ void lenv_add_builtins(lenv* e) {
   lenv_add_builtin(e, "\\", builtin_lambda);
   lenv_add_builtin(e, "def", builtin_def);
   lenv_add_builtin(e, "=", builtin_put);
+  lenv_add_builtin(e, "fun", builtin_fun);
 
   lenv_add_builtin(e, "list", builtin_list);
   lenv_add_builtin(e, "head", builtin_head);
