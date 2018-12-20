@@ -511,40 +511,34 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
     if (strcmp(func, "=") == 0) {
       lenv_put(e, syms->cell[i], a->cell[i + 1]);
     }
-    if (strcmp(func, "fun") == 0) {
-      lenv_def(e, syms->cell[i], a->cell[i + 1]);
-    }
   }
   lval_del(a);
   return lval_sexpr();
 }
 
+void lenv_add_builtin(lenv* e, char* name, lbuiltin func);
+
 lval* builtin_fun(lenv* e, lval* a) {
-  LASSERT_NUM("fun", a, 2);
-  LASSERT_TYPE("fun", a, 0, LVAL_QEXPR);
-  LASSERT_TYPE("fun", a, 1, LVAL_QEXPR);
+  /* First argument is symbol list */
+  lval* syms = a->cell[0];
+  char* op = syms->cell[0]->sym;
 
-  for (int i = 0; i < a->cell[0]->count; i++) {
-    LASSERT(a, (a->cell[0]->cell[i]->type == LVAL_SYM),
-            "Cannot define non-symbol.  Got %s, Expected %s.",
-            ltype_name(a->cell[0]->cell[i]->type), ltype_name(LVAL_SYM));
+  printf("%s", syms->cell[0]->sym);
+  /* Ensure all elements of first list are symbols */
+  for (int i = 0; i < syms->count; i++) {
+    LASSERT(a, syms->cell[i]->type == LVAL_SYM,
+            "Function 'fun' cannot define non-symbol");
   }
-  char* head = lval_take(a, 0)->sym;
-  lval* formals = builtin_tail(e, a->cell[0]);
-  lval* body = lval_pop(a, 1);
 
-  lval_del(a);
+  for (int i = 1; i < a->cell[1]->count; i++) {
+    lenv_put(e, syms->cell[i], a->cell[1]->cell[i]);
+  }
+  lval* k = lval_sym(op);
+  a->type = LVAL_FUN;
+  lenv_put(e, k, a);
+  lval_del(k);
 
-  lval* v = malloc(sizeof(lval));
-  v->type = LVAL_FUN;
-  v->builtin = NULL;
-  v->env = lenv_new();
-  v->sym = malloc(strlen(head) + 1);
-  strcpy(v->sym, head);
-  v->formals = formals;
-  v->body = body;
-
-  return builtin_var(e, v, "fun");
+  return lval_sexpr();
 }
 
 lval* builtin_ord(lenv* e, lval* a, char* op);
