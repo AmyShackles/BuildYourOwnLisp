@@ -516,30 +516,6 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
   return lval_sexpr();
 }
 
-lval* builtin_fun(lenv* e, lval* a) {
-  /* First argument is symbol list */
-  lval* syms = a->cell[0];
-  char* op = syms->cell[0]->sym;
-
-  /* Ensure all elements of first list are symbols */
-  for (int i = 0; i < syms->count; i++) {
-    LASSERT(a, syms->cell[i]->type == LVAL_SYM,
-            "Function 'fun' cannot define non-symbol");
-  }
-
-  for (int i = 1; i < a->cell[1]->count; i++) {
-    printf("%s\n", syms->cell[i]->sym);
-    printf("a->cell[1]->cell[i]->sym: %s\n", a->cell[1]->cell[i]->sym);
-    lenv_put(e, syms->cell[i], a->cell[1]->cell[i]);
-  }
-  lval* k = lval_sym(op);
-  a->type = LVAL_FUN;
-  lenv_put(e, k, a);
-  lval_del(k);
-
-  return lval_sexpr();
-}
-
 lval* builtin_ord(lenv* e, lval* a, char* op);
 
 lval* builtin_gt(lenv* e, lval* a) { return builtin_ord(e, a, ">"); }
@@ -668,7 +644,6 @@ void lenv_add_builtins(lenv* e) {
   lenv_add_builtin(e, "\\", builtin_lambda);
   lenv_add_builtin(e, "def", builtin_def);
   lenv_add_builtin(e, "=", builtin_put);
-  lenv_add_builtin(e, "fun", builtin_fun);
 
   lenv_add_builtin(e, "list", builtin_list);
   lenv_add_builtin(e, "head", builtin_head);
