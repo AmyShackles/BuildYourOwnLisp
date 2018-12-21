@@ -516,14 +516,11 @@ lval* builtin_var(lenv* e, lval* a, char* func) {
   return lval_sexpr();
 }
 
-void lenv_add_builtin(lenv* e, char* name, lbuiltin func);
-
 lval* builtin_fun(lenv* e, lval* a) {
   /* First argument is symbol list */
   lval* syms = a->cell[0];
   char* op = syms->cell[0]->sym;
 
-  printf("%s", syms->cell[0]->sym);
   /* Ensure all elements of first list are symbols */
   for (int i = 0; i < syms->count; i++) {
     LASSERT(a, syms->cell[i]->type == LVAL_SYM,
@@ -531,6 +528,8 @@ lval* builtin_fun(lenv* e, lval* a) {
   }
 
   for (int i = 1; i < a->cell[1]->count; i++) {
+    printf("%s\n", syms->cell[i]->sym);
+    printf("a->cell[1]->cell[i]->sym: %s\n", a->cell[1]->cell[i]->sym);
     lenv_put(e, syms->cell[i], a->cell[1]->cell[i]);
   }
   lval* k = lval_sym(op);
