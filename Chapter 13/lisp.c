@@ -1,22 +1,20 @@
 #include "../mpc.h"
-#ifdef _WIN32
+#include <emscripten.h>
+
+EMSCRIPTEN_KEEPALIVE
 
 static char buffer[2048];
 
 char* readline(char* prompt) {
-  fputs(prompt, stdout);
-  fgets(buffer, 2048, stdin);
-  char* cpy = malloc(strlen(buffer) + 1);
-  strcpy(cpy, buffer);
-  cpy[strlen(cpy) - 1] = '\0';
-  return cpy;
+    fputs(prompt, stdout);
+    fgets(buffer, 2048, stdin);
+    char* cpy = malloc(strlen(buffer) + 1);
+    strcpy(cpy, buffer);
+    cpy[strlen(cpy) - 1] = '\0';
+    return cpy;
 }
 
 void add_history(char* unused) {}
-
-#else
-#include <editline/readline.h>
-#endif
 
 struct lval;
 struct lenv;
