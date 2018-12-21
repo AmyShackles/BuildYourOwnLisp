@@ -1,0 +1,22 @@
+{
+  "name": "lispinterpreter",
+  "version": "1.0.0",
+  "description": "Lisp Interpreter written in C",
+  "main": "index.js",
+  "repository": "https://github.com/AmyShackles/BuildYourOwnLisp.git",
+  "author": "Amy Shackles",
+  "license": "MIT",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "express-ws": "^4.0.0",
+    "node-pty": "^0.7.8",
+    "source-map-loader": "^0.2.4",
+    "ts-loader": "^5.3.2",
+    "typescript": "^3.2.2",
+    "webpack": "^4.28.1",
+    "xterm": "^3.9.1"
+  }
+}
