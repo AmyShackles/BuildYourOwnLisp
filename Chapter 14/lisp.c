@@ -4,6 +4,7 @@
 
 static char buffer[2048];
 
+/* Define readline function for compilers without editline/readline */
 char* readline(char* prompt) {
   fputs(prompt, stdout);
   fgets(buffer, 2048, stdin);
@@ -19,6 +20,7 @@ void add_history(char* unused) {}
 #include <editline/readline.h>
 #endif
 
+/* Forward declare parsers in order for builtin_load to work */
 mpc_parser_t* Number;
 mpc_parser_t* Symbol;
 mpc_parser_t* String;
@@ -28,11 +30,13 @@ mpc_parser_t* Qexpr;
 mpc_parser_t* Expr;
 mpc_parser_t* Lisp;
 
+/* Forward declare lval and lenv structs */
 struct lval;
 struct lenv;
 typedef struct lval lval;
 typedef struct lenv lenv;
 
+/* Enumerate all type options for lval */
 enum {
   LVAL_ERR,
   LVAL_NUM,
@@ -44,6 +48,7 @@ enum {
   LVAL_QEXPR
 };
 
+/* Define lval because lval struct is recursively defined */
 typedef lval* (*lbuiltin)(lenv*, lval*);
 
 struct lval {
@@ -55,12 +60,15 @@ struct lval {
   char* str;
   lbuiltin builtin;
   lenv* env;
+  /* Formals are unbound variables */
   lval* formals;
+  /* Body is the body of a function */
   lval* body;
   int count;
   lval** cell;
 };
 
+/* Construct for lval Number */
 lval* lval_num(long x) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_NUM;
@@ -69,13 +77,15 @@ lval* lval_num(long x) {
   return v;
 }
 
-/* Construct a pointer to a new Decimal lval */
+/* Construct for lval Decimal */
 lval* lval_dec(double y) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_DEC;
   v->dec = y;
   return v;
 }
+
+/* Construct for lval Error */
 
 lval* lval_err(char* fmt, ...) {
   lval* v = malloc(sizeof(lval));
@@ -89,6 +99,7 @@ lval* lval_err(char* fmt, ...) {
   return v;
 }
 
+/* Construct for lval String */
 lval* lval_str(char* s) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_STR;
@@ -97,6 +108,7 @@ lval* lval_str(char* s) {
   return v;
 }
 
+/* Construct for lval Symbol */
 lval* lval_sym(char* s) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_SYM;
@@ -105,6 +117,7 @@ lval* lval_sym(char* s) {
   return v;
 }
 
+/* Construct for lval Function */
 lval* lval_builtin(lbuiltin func) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_FUN;
@@ -112,8 +125,10 @@ lval* lval_builtin(lbuiltin func) {
   return v;
 }
 
+/* Forward declare the function to create an environment */
 lenv* lenv_new(void);
 
+/* Function to create user-defined functions */
 lval* lval_lambda(lval* formals, lval* body) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_FUN;
@@ -124,6 +139,7 @@ lval* lval_lambda(lval* formals, lval* body) {
   return v;
 }
 
+/* Construct for lval S-Expression */
 lval* lval_sexpr(void) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_SEXPR;
@@ -132,6 +148,7 @@ lval* lval_sexpr(void) {
   return v;
 }
 
+/* Construct for lval Q-Expression */
 lval* lval_qexpr(void) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_QEXPR;
@@ -140,8 +157,10 @@ lval* lval_qexpr(void) {
   return v;
 }
 
+/* Forward declare function to destroy an environment */
 void lenv_del(lenv* e);
 
+/* Function to delete lval */
 void lval_del(lval* v) {
   switch (v->type) {
     case LVAL_NUM:
@@ -149,6 +168,8 @@ void lval_del(lval* v) {
     case LVAL_DEC:
       break;
     case LVAL_FUN:
+    /* If function is not a builtin function, delete the environment
+      and also delete the unbound function variables and function body */
       if (!v->builtin) {
         lenv_del(v->env);
         lval_del(v->formals);
@@ -175,6 +196,7 @@ void lval_del(lval* v) {
   free(v);
 }
 
+/* Forward declare function to copy environment */
 lenv* lenv_copy(lenv* e);
 
 lval* lval_copy(lval* v) {
@@ -340,6 +362,7 @@ char* ltype_name(int t) {
   }
 }
 
+/* Define lenv struct, which is the environment */
 struct lenv {
   lenv* par;
   int count;
