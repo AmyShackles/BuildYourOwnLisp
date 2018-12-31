@@ -1,4 +1,5 @@
 #include "../mpc.h"
+#include <math.h>
 #ifdef _WIN32
 
 static char buffer[2048];
@@ -35,6 +36,7 @@ typedef struct lenv lenv;
 enum {
   LVAL_ERR,
   LVAL_NUM,
+  LVAL_DEC,
   LVAL_SYM,
   LVAL_STR,
   LVAL_FUN,
@@ -47,6 +49,7 @@ typedef lval* (*lbuiltin)(lenv*, lval*);
 struct lval {
   int type;
   long num;
+  double dec;
   char* err;
   char* sym;
   char* str;
@@ -62,6 +65,15 @@ lval* lval_num(long x) {
   lval* v = malloc(sizeof(lval));
   v->type = LVAL_NUM;
   v->num = x;
+  v->dec = (double)x;
+  return v;
+}
+
+/* Construct a pointer to a new Decimal lval */
+lval* lval_dec(double y) {
+  lval* v = malloc(sizeof(lval));
+  v->type = LVAL_DEC;
+  v->dec = y;
   return v;
 }
 
@@ -134,6 +146,8 @@ void lval_del(lval* v) {
   switch (v->type) {
     case LVAL_NUM:
       break;
+    case LVAL_DEC:
+      break;
     case LVAL_FUN:
       if (!v->builtin) {
         lenv_del(v->env);
@@ -180,6 +194,9 @@ lval* lval_copy(lval* v) {
       break;
     case LVAL_NUM:
       x->num = v->num;
+      break;
+    case LVAL_DEC:
+      x->dec = v->dec;
       break;
     case LVAL_STR:
       x->str = malloc(strlen(v->str) + 1);
@@ -275,6 +292,9 @@ void lval_print(lval* v) {
     case LVAL_NUM:
       printf("%li", v->num);
       break;
+    case LVAL_DEC:
+      printf("%.2f", v->dec);
+      break;
     case LVAL_ERR:
       printf("Error: %s", v->err);
       break;
@@ -303,6 +323,7 @@ char* ltype_name(int t) {
     case LVAL_FUN:
       return "Function";
     case LVAL_NUM:
+    case LVAL_DEC:
       return "Number";
     case LVAL_ERR:
       return "Error";
@@ -497,26 +518,84 @@ lval* builtin_join(lenv* e, lval* a) {
 }
 
 lval* builtin_op(lenv* e, lval* a, char* op) {
+
+  /* Ensure all arguments are numbers */
   for (int i = 0; i < a->count; i++) {
-    LASSERT_TYPE(op, a, i, LVAL_NUM);
+    if (a->cell[i]->type != LVAL_NUM && a->cell[i]->type != LVAL_DEC) {
+      lval_del(a);
+      return lval_err("Cannot operate on non-number!");
+    }
   }
 
+  /* Pop the first element */
   lval* x = lval_pop(a, 0);
+
+  /* If no arguments and sub then perform unary negation */
   if ((strcmp(op, "-") == 0) && a->count == 0) {
     x->num = -x->num;
+    x->dec = -x->dec;
   }
 
+  /* While there are still elements remaining */
   while (a->count > 0) {
+
+    /* Pop the next element */
     lval* y = lval_pop(a, 0);
 
+    /* In order to account for the fact that numbers being parsed may be
+       decimals and not integers,
+            you need to have the logic available for both possible outputs */
     if (strcmp(op, "+") == 0) {
       x->num += y->num;
+      x->dec += y->dec;
+    }
+    if (strcmp(op, "add") == 0) {
+      x->num += y->num;
+      x->dec += y->dec;
     }
     if (strcmp(op, "-") == 0) {
       x->num -= y->num;
+      x->dec -= y->dec;
+    }
+    if (strcmp(op, "subtract") == 0) {
+      x->num -= y->num;
+      x->dec -= y->dec;
     }
     if (strcmp(op, "*") == 0) {
       x->num *= y->num;
+      x->dec *= y->dec;
+    }
+    if (strcmp(op, "multiply") == 0) {
+      x->num *= y->num;
+      x->dec *= y->dec;
+    }
+    if (strcmp(op, "^") == 0) {
+      /* If x->num doesn't equal x->dec, we know it's a decimal, so we should
+       * use lval_dec to make the pointer */
+      if (x->num != x->dec) {
+        x = lval_dec(pow(x->dec, y->dec));
+      } else {
+        x = lval_num(pow(x->num, y->num));
+      }
+    }
+    if (strcmp(op, "modulo") == 0) {
+      x->num %= y->num;
+    }
+    if (strcmp(op, "divide") == 0) {
+      if (y->num == 0) {
+        lval_del(x);
+        lval_del(y);
+        x = lval_err("Division by zero!");
+        break;
+      }
+      x->num /= y->num;
+      if (y->dec == 0.00) {
+        lval_del(x);
+        lval_del(y);
+        x = lval_err("Division by zero!");
+        break;
+      }
+      x->dec /= y->dec;
     }
     if (strcmp(op, "/") == 0) {
       if (y->num == 0) {
@@ -526,6 +605,13 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
         break;
       }
       x->num /= y->num;
+      if (y->dec == 0.00) {
+        lval_del(x);
+        lval_del(y);
+        x = lval_err("Division by zero!");
+        break;
+      }
+      x->dec /= y->dec;
     }
     lval_del(y);
   }
@@ -534,9 +620,16 @@ lval* builtin_op(lenv* e, lval* a, char* op) {
 }
 
 lval* builtin_add(lenv* e, lval* a) { return builtin_op(e, a, "+"); }
+lval* builtin_word_add(lenv* e, lval* a) { return builtin_op(e, a, "add"); }
 lval* builtin_sub(lenv* e, lval* a) { return builtin_op(e, a, "-"); }
+lval* builtin_subtract(lenv* e, lval* a) { return builtin_op(e, a, "subtract"); }
 lval* builtin_mul(lenv* e, lval* a) { return builtin_op(e, a, "*"); }
+lval* builtin_multiply(lenv* e, lval* a) { return builtin_op(e, a, "multiply"); }
 lval* builtin_div(lenv* e, lval* a) { return builtin_op(e, a, "/"); }
+lval* builtin_divide(lenv* e, lval* a) { return builtin_op(e, a, "divide"); }
+lval* builtin_mod(lenv* e, lval* a) { return builtin_op(e, a, "mod"); }
+lval* builtin_modulo(lenv* e, lval* a) { return builtin_op(e, a, "modulo"); }
+lval* builtin_pow(lenv* e, lval* a) { return builtin_op(e, a, "^"); }
 
 lval* builtin_var(lenv* e, lval* a, char* func) {
   LASSERT_TYPE(func, a, 0, LVAL_QEXPR);
@@ -763,9 +856,15 @@ void lenv_add_builtins(lenv* e) {
   lenv_add_builtin(e, "join", builtin_join);
 
   lenv_add_builtin(e, "+", builtin_add);
+  lenv_add_builtin(e, "add", builtin_word_add);
   lenv_add_builtin(e, "-", builtin_sub);
+  lenv_add_builtin(e, "subtract", builtin_subtract);
   lenv_add_builtin(e, "*", builtin_mul);
+  lenv_add_builtin(e, "multiply", builtin_multiply);
   lenv_add_builtin(e, "/", builtin_div);
+  lenv_add_builtin(e, "divide", builtin_divide);
+  lenv_add_builtin(e, "modulo", builtin_modulo);
+  lenv_add_builtin(e, "^", builtin_pow);
 
   lenv_add_builtin(e, "if", builtin_if);
   lenv_add_builtin(e, "==", builtin_eq);
@@ -889,6 +988,12 @@ lval* lval_eval(lenv* e, lval* v) {
   return v;
 }
 
+lval* lval_read_dec(mpc_ast_t* t) {
+  errno = 0;
+  double x = strtod(t->contents, NULL);
+  return errno != ERANGE ? lval_dec(x) : lval_err("Invalid number");
+}
+
 lval* lval_read_num(mpc_ast_t* t) {
   errno = 0;
   long x = strtol(t->contents, NULL, 10);
@@ -917,7 +1022,11 @@ lval* lval_read_str(mpc_ast_t* t) {
 
 lval* lval_read(mpc_ast_t* t) {
   if (strstr(t->tag, "number")) {
-    return lval_read_num(t);
+    if (strstr(t->contents, ".")) {
+      return lval_read_dec(t);
+    } else {
+      return lval_read_num(t);
+    }
   }
   if (strstr(t->tag, "symbol")) {
     return lval_sym(t->contents);
@@ -926,7 +1035,6 @@ lval* lval_read(mpc_ast_t* t) {
     return lval_read_str(t);
   }
   
-
   lval* x = NULL;
   if (strcmp(t->tag, ">") == 0) {
     x = lval_sexpr();
@@ -974,8 +1082,8 @@ int main(int argc, char** argv) {
 
   mpca_lang(MPCA_LANG_DEFAULT,
   "                                                             \
-    number  : /-?[0-9]+/;                                       \
-    symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/;                 \
+    number  : /-?[0-9.]+/;                                      \
+    symbol  : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&^]+/;                \
     string  : /\"(\\\\.|[^\"])*\"/;                             \
     comment : /;[^\\r\\n]*/;                                    \
     sexpr   : '(' <expr>* ')';                                  \
