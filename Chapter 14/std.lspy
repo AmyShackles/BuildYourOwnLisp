@@ -21,8 +21,8 @@
 (fun {pack f & xs} {f xs})
 
 ; Unpack list to Function
-(fun {unpack f 1} {
-    eval (join (list f) 1)
+(fun {unpack f l} {
+    eval (join (list f) l)
 })
 
 ; Curried and uncurried calling
@@ -30,10 +30,10 @@
 (def {uncurry} pack)
 
 ; Perform several things in sequence
-(fun {do & 1} {
-    if (== 1 nil)
+(fun {do & l} {
+    if (== l nil)
         {nil}
-        {last 1}
+        {last l}
 })
 
 ;;; Logical functions
@@ -92,118 +92,118 @@
 
 ; First, Second, or Third items in a list
 
-(fun {fst 1} { eval (head 1) })
-(fun {snd 1} { eval (head (tail 1)) })
-(fun {trd 1} { eval (head (tail (tail 1))) })
+(fun {fst l} { eval (head l) })
+(fun {snd l} { eval (head (tail l)) })
+(fun {trd l} { eval (head (tail (tail l))) })
 
 ; List length
-(fun {len 1} {
-    if (== 1 nil)
+(fun {len l} {
+    if (== l nil)
         {0}
-        {+ 1 (len (tail 1))}
+        {+ 1 (len (tail l))}
 })
 
 ; Nth item in list
-(fun {nth n 1} {
+(fun {nth n l} {
     if (== n 0)
-        {fst 1}
-        {nth (- n 1) (tail 1)}
+        {fst l}
+        {nth (- n 1) (tail l)}
 })
 
 ; Last item in list
-(fun {last 1} {nth (- (len 1) 1) 1})
+(fun {last l} {nth (- (len l) 1) l})
 
 ; Apply function to list
-(fun {map f 1} {
-    if (== 1 nil)
+(fun {map f l} {
+    if (== l nil)
         {nil}
-        {join (list (f (fst 1))) (map f (tail 1))}
+        {join (list (f (fst l))) (map f (tail l))}
 })
 
 ; Apply filter to list
-(fun {filter f 1} {
-    if (== 1 nil)
+(fun {filter f l} {
+    if (== l nil)
         {nil}
-        {join (if (f (fst 1)) {head 1} {nil}) (filter f (tail 1))}
+        {join (if (f (fst l)) {head l} {nil}) (filter f (tail l))}
 })
 
 ; Return all of list but last element
-(fun {init 1} {
-    if (== (tail 1) nil)
+(fun {init l} {
+    if (== (tail l) nil)
         {nil}
-        {join (head 1) (init (tail 1))}
+        {join (head l) (init (tail l))}
 })
 
 ; Reverse list
-(fun {reverse 1} {
-    if (== 1 nil)
+(fun {reverse l} {
+    if (== l nil)
         {nil}
-        {join (reverse (tail 1)) (head 1)}
+        {join (reverse (tail l)) (head l)}
 })
 
 ; Fold left
 (fun {foldl f z l} {
-    if (== 1 nil)
+    if (== l nil)
         {z}
-        {foldl f (f z (fst 1)) (tail 1)}
+        {foldl f (f z (fst l)) (tail l)}
 })
 
 ; Fold right
-(fun {folder f z 1} {
-    if (== 1 nil)
+(fun {folder f z l} {
+    if (== l nil)
         {z}
-        {if (fst 1) (foldr f z (tail 1))}
+        {if (fst l) (foldr f z (tail l))}
 })
 
-(fun {sum 1} {foldl + 0 1})
-(fun {product 1} {foldl * 1 1})
+(fun {sum l} {foldl + 0 l})
+(fun {product l} {foldl * 1 l})
 
 ; Take N items
-(fun {take n 1} {
+(fun {take n l} {
     if (== n 0)
         {nil}
-        {join (head 1) (tail (- n 1) (tail 1))}
+        {join (head l) (tail (- n 1) (tail l))}
 })
 
 ; Drop N items
-(fun {drop n 1} {
+(fun {drop n l} {
     if (== n 0)
-        {1}
-        {drop (- n 1) (tail 1)}
+        {l}
+        {drop (- n 1) (tail l)}
 })
 
 ; Split at N
-(fun {split n 1} {list (take n 1) (drop n 1)})
+(fun {split n l} {list (take n l) (drop n l)})
 
 ; Take while
-(fun {take-while f 1} {
-    if (not (unpack f (head 1)))
+(fun {take-while f l} {
+    if (not (unpack f (head l)))
         {nil}
-        {join (head 1) (take-while f (tail 1))}
+        {join (head l) (take-while f (tail l))}
 })
 
 ; Drop while
-(fun {drop-while f 1} {
-    if (not (unpack f (head 1)))
-        {1}
-        {drop-while f (tail 1)}
+(fun {drop-while f l} {
+    if (not (unpack f (head l)))
+        {l}
+        {drop-while f (tail l)}
 })
 
 ; Element of list
-(fun {elem x 1} {
-    if (== 1 nil)
+(fun {elem x l} {
+    if (== l nil)
         {false}
-        {if (== x (fst 1)) {true} {elem x (tail 1)}}
+        {if (== x (fst l)) {true} {elem x (tail l)}}
 })
 
 ; Find element in list of pairs
-(fun {lookup x 1} {
-    if (== 1 nil)
+(fun {lookup x l} {
+    if (== l nil)
         {error "No element found"}
         {do
-            (= {key} (fst (fst 1)))
-            (= {val} (snd (fst 1)))
-            (if (== key x) {val} {lookup x (tail 1)})
+            (= {key} (fst (fst l)))
+            (= {val} (snd (fst l)))
+            (if (== key x) {val} {lookup x (tail l)})
         }
 })
 
@@ -215,12 +215,12 @@
 })
 
 ; Unzip a list of pairs into two lists
-(fun {unzip 1} {
-    if (== 1 nil)
+(fun {unzip l} {
+    if (== l nil)
         {{nil nil}}
         {do
-            (= {x} (fst 1))
-            (= {xs} (unzip (tail 1)))
+            (= {x} (fst l))
+            (= {xs} (unzip (tail l)))
             (list (join (head x) (fst xs)) (join (tail x) (snd xs)))
         }
 })
