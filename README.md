@@ -9,8 +9,8 @@ To use the interpreter:
 1. Fork/clone repo
 2. Cd into most recent working version's folder(currently Chapter 14)
 3. Compile most recent working version (currently lisp.c)
-4. Run program (./functions.c)
+4. Run program (./lisp.c)
 
 
-Recommend compiling using the command `cc -std=c99 -Wall functions.c ../mpc.c -ledit -lm -o functions`
+Recommend compiling using the command `cc -std=c99 -Wall lisp.c ../mpc.c -ledit -lm -o lisp`
 
